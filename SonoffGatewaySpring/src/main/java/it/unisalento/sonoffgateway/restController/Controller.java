@@ -95,8 +95,6 @@ public class Controller {
 			MqttClient client = connectToBroker();;
 
 			
-			//TODO: correggere bug
-
 			client.subscribe(statTopic, new IMqttMessageListener() {
 				
 				@Override
@@ -157,7 +155,6 @@ public class Controller {
 			file.close();
 			
 		} catch (IOException | ParseException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -186,9 +183,7 @@ public class Controller {
 			}
 		
 			@Override
-			public void connectionLost(Throwable cause) {
-				// TODO Auto-generated method stub
-			
+			public void connectionLost(Throwable cause) {			
 			}
 		
 		});	

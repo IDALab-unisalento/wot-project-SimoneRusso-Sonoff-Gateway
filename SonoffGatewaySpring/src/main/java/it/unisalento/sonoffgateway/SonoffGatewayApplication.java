@@ -62,7 +62,6 @@ public class SonoffGatewayApplication{
         			FirebaseApp.initializeApp(options);
         
         }catch (Exception e) {
-			// TODO: handle exception
 		}
         
 
@@ -82,7 +81,6 @@ public class SonoffGatewayApplication{
 			}
 			
 		} catch (IOException | ParseException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
         connectAndSubscribeMqtt((ArrayList<String>) tokens);
@@ -116,7 +114,6 @@ public class SonoffGatewayApplication{
     		
     			@Override
     			public void connectionLost(Throwable cause) {
-    				// TODO Auto-generated method stub
     			
     			}
     		
@@ -139,7 +136,9 @@ public class SonoffGatewayApplication{
     		
     		client.subscribe(statTopic, new IMqttMessageListener() {
     			
-    			//TODO: correggere bug
+    			//TODO: BUG
+    			//Essendo iscritto allo stesso topic dell'API getStatus(), questo invia una notifica ogni volta che si contatta quell'API
+    			//quindi anche quando non c'è un effettivo cambio di stato (la getStatus() da solo informazioni sullo stato attuato del dispositivo)
     			
     			@Override
     			public void messageArrived(String topic, MqttMessage message) throws Exception {
@@ -164,7 +163,6 @@ public class SonoffGatewayApplication{
     		});
     		
         }catch (Exception e) {
-			// TODO: handle exception
 		}
 		
 	}
