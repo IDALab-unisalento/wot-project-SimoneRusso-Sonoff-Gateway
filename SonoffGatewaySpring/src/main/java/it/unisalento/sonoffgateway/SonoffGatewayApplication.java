@@ -2,24 +2,21 @@ package it.unisalento.sonoffgateway;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.IMqttMessageListener;
-import org.eclipse.paho.client.mqttv3.MqttCallback;
+import org.eclipse.paho.client.mqttv3.MqttCallbackExtended;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
@@ -32,7 +29,6 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
 
@@ -43,26 +39,25 @@ import com.google.firebase.messaging.Notification;
 public class SonoffGatewayApplication{
 	String status = new String();
 
-	public static void main(String[] args) {
+	@SuppressWarnings("unchecked")
+	public static void main(String[] args) throws Exception {
 		SpringApplication app = new SpringApplication(SonoffGatewayApplication.class);
         app.setDefaultProperties(Collections
           .singletonMap("server.port", "8081"));
-        app.run(args);	
+        app.run(args);	        
         
         try {
-        	
-        	FileInputStream serviceAccount =
-        			  new FileInputStream("./sonoff-66f45-firebase-adminsdk-uyqwv-6627f88f88.json");
-        			
-                    FirebaseOptions options = FirebaseOptions.builder()
-                   		 .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                            .build();
-
-
-        			FirebaseApp.initializeApp(options);
-        
+        	System.out.println("Connecting to Firebase");
+        	FileInputStream serviceAccount = new FileInputStream("./sonoff-66f45-firebase-adminsdk-uyqwv-6627f88f88.json");
+        	FirebaseOptions options = FirebaseOptions.builder()
+        			.setCredentials(GoogleCredentials.fromStream(serviceAccount))
+        			.build();
+        	FirebaseApp.initializeApp(options);
         }catch (Exception e) {
+        	System.out.println("Something went wrong with Firebase conf file!\n" + e.getMessage());
+        	throw e;
 		}
+        System.out.println("Connected succefully to Firebase");
         
 
         File file = new File("./tokens.json");  
@@ -83,6 +78,7 @@ public class SonoffGatewayApplication{
 		} catch (IOException | ParseException e) {
 			e.printStackTrace();
 		}
+		
         connectAndSubscribeMqtt((ArrayList<String>) tokens);
         
         
@@ -102,21 +98,28 @@ public class SonoffGatewayApplication{
         	MqttClient client = new MqttClient(broker, clientId, new MemoryPersistence());
     		
     		
-    		client.setCallback(new MqttCallback() {
-    		
-    			@Override
-    			public void messageArrived(String topic, MqttMessage message) throws Exception {
-    			}
-    		
-    			@Override
-    			public void deliveryComplete(IMqttDeliveryToken token) {
-    			}
-    		
-    			@Override
-    			public void connectionLost(Throwable cause) {
-    			
-    			}
-    		
+    		client.setCallback(new MqttCallbackExtended() {
+				
+				@Override
+				public void messageArrived(String topic, MqttMessage message) throws Exception {
+					
+				}
+				
+				@Override
+				public void deliveryComplete(IMqttDeliveryToken token) {
+					
+				}
+				
+				@Override
+				public void connectionLost(Throwable cause) {
+					System.out.println("Something went wrong with connection!\n"+ cause.getMessage());
+					
+				}
+				
+				@Override
+				public void connectComplete(boolean reconnect, String serverURI) {
+					System.out.println("Connected Succesfully");
+				}
     		});	
     		
     	
@@ -127,12 +130,6 @@ public class SonoffGatewayApplication{
     		System.out.println("CONNECTIONG TO BROKER " + broker);
     	
     		client.connect(opt);
-    	
-    		System.out.println("CONNECT SUCCESSED");
-
-    		
-    		
-
     		
     		client.subscribe(statTopic, new IMqttMessageListener() {
     			
@@ -142,25 +139,26 @@ public class SonoffGatewayApplication{
     			
     			@Override
     			public void messageArrived(String topic, MqttMessage message) throws Exception {
-    				String m = new String(message.getPayload(), StandardCharsets.UTF_8);
-    				System.out.println("MESSAGE ARRIVED: " + m);
+    				String status = new String(message.getPayload(), StandardCharsets.UTF_8);
+    				System.out.println("A change of status occured, status: " + status);
     				Notification.Builder builder = Notification.builder();
     				MulticastMessage notMess = MulticastMessage.builder()
     						.setNotification(builder.build())
     						.putData("title", "Cambio di stato")
-    						.putData("body", m)
+    						.putData("body", status)
     				        .addAllTokens(tokens)
     				        .build();
-    				System.out.println("SENDING...");
+    				System.out.println("Sending notification...");
 
     				BatchResponse response = FirebaseMessaging.getInstance().sendMulticast(notMess);
     				    // See the BatchResponse reference documentation
     				    // for the contents of response.
-    				System.out.println(response.getSuccessCount() + " messages were sent successfully");
+    				System.out.println(response.getSuccessCount()+"/"+tokens.size() + " messages were sent successfully");
     				    				
     				
 				}
     		});
+			System.out.println("Subscribed succesfully to: " +statTopic);
     		
         }catch (Exception e) {
 		}

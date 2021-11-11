@@ -8,11 +8,10 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.IMqttMessageListener;
-import org.eclipse.paho.client.mqttv3.MqttCallback;
+import org.eclipse.paho.client.mqttv3.MqttCallbackExtended;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -24,17 +23,11 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.google.firebase.messaging.BatchResponse;
-import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.FirebaseMessagingException;
-import com.google.firebase.messaging.MulticastMessage;
-
 
 @RestController
 public class Controller {
@@ -46,158 +39,141 @@ public class Controller {
 	String status = new String();
 		
 	@RequestMapping(value="changeStatusON", method = RequestMethod.GET)
-	public ResponseEntity<Boolean> changeStatusON() throws Exception{
+	public ResponseEntity<Boolean> changeStatusON(){
 		try {
 			
-			MqttClient client = connectToBroker();
+			MqttClient client = connectToBroker(cmdTopic);
 			
 			MqttMessage message = new MqttMessage("ON".getBytes());
 			
-			client.publish(cmdTopic, message);	//BLOCKING
-
-			client.disconnect();
+			System.out.println("Trying to change status to ON...");
 			
-			System.out.println(client.getClientId() + ": CLIENT DISCONNESSO");
+			client.publish(cmdTopic, message);	//BLOCKING
+			
+			client.disconnect(100);
+			System.out.println("Client " + client.getClientId() + " disconnected succesfully");
+			client.close();
 			
 			return new ResponseEntity<Boolean>(HttpStatus.OK);
-			
+
 		}catch (Exception e) {
-			throw e;
+			System.out.println("Something went wrong while changing status!\n" + e.getMessage());
+			return new ResponseEntity<Boolean>(HttpStatus.BAD_GATEWAY);
 			}
+
 	}
 	
 	@RequestMapping(value="changeStatusOFF", method = RequestMethod.GET)
 	public ResponseEntity<Boolean> changeStatusOFF() throws Exception{
-		try {
-			MqttClient client = connectToBroker();
+try {
+			
+			MqttClient client = connectToBroker(cmdTopic);
 			
 			MqttMessage message = new MqttMessage("OFF".getBytes());
 			
-			client.publish(cmdTopic, message);	//BLOCKING
-
-			client.disconnect();
+			System.out.println("Trying to change status to OFF...");
 			
-			System.out.println(client.getClientId() + ": CLIENT DISCONNESSO");
+			client.publish(cmdTopic, message); //BLOCKING
+			
+			client.disconnect(100);
+			System.out.println("Client " + client.getClientId() + " disconnected succesfully");
+			
+			client.close();
 			
 			return new ResponseEntity<Boolean>(HttpStatus.OK);
-			
+
 		}catch (Exception e) {
-			throw e;
+			System.out.println("Something went wrong while changing status!\n" + e.getMessage());
+			return new ResponseEntity<Boolean>(HttpStatus.BAD_GATEWAY);
 			}
 	}
 	
 
 	
 	@RequestMapping(value="getStatus", method = RequestMethod.GET)
-	public String getStatus() throws Exception{
+	public String getStatus() throws MqttException{
 		try {
 			status = "";
-			MqttClient client = connectToBroker();;
+			MqttClient client = connectToBroker(statTopic);;
 
+			System.out.println("Trying to subscribe to "+statTopic);
 			
 			client.subscribe(statTopic, new IMqttMessageListener() {
 				
 				@Override
 				public void messageArrived(String topic, MqttMessage message) throws Exception {
-					String m = new String(message.getPayload(), StandardCharsets.UTF_8);
-					System.out.println("MESSAGE ARRIVED: " + m);
-					status = m;
-					client.disconnect();	
-					System.out.println(client.getClientId() + ": CLIENT DISCONNESSO");
+					status = new String(message.getPayload(), StandardCharsets.UTF_8);
+					System.out.println("Getted status: " + status);
+					client.disconnect();
 				}
 			});
 			
 			
 			MqttMessage message = new MqttMessage();
 			
+			System.out.println("Trying to get status...");
 			client.publish(reqToipic, message);	//BLOCKING
 			
-			while(client.isConnected()) {
-				
-			}
+			
+			while(client.isConnected());
+			System.out.println("Client " + client.getClientId() + " disconnected succesfully");
+			client.close();
 
 			return status;
-		}catch (Exception e) {
+		}catch (MqttException e) {
+			System.out.println("Something went wrong while getting status!\n" + e.getMessage());
 			throw e;
 			}
 		
 	}
 	
-	@RequestMapping(value="saveToken", method = RequestMethod.POST)
-	public ResponseEntity<String> saveToken(@RequestBody String token) throws Exception{
+	private MqttClient connectToBroker(String topic) throws MqttException {
 		
-        JSONParser parser = new JSONParser();
-        JSONArray array = new JSONArray();
-        
-        String tokenValue = token.split("=")[1];
-		Reader reader;
-		List<String> tokens = new ArrayList<>();
-		try {
-			reader = new FileReader("./tokens.json");
-			JSONObject jsonObject = (JSONObject) parser.parse(reader);
-			
-			tokens = (List<String>) jsonObject.get("token");
-			
-			for(String tok: tokens) {
-				array.add(tok);
-			}
-			array.add(tokenValue);
-			
-			
-			jsonObject = new JSONObject();
-			jsonObject.put("token",array);
-			
-			File f = new File("./tokens");
-			f.delete();
-			
-			FileWriter file = new FileWriter("./tokens.json");
-			file.write(jsonObject.toJSONString());
-			file.close();
-			
-		} catch (IOException | ParseException e) {
-			e.printStackTrace();
-		}
-		
-		return new ResponseEntity<String>(HttpStatus.OK);
-
-	}
-	
-	private MqttClient connectToBroker() throws MqttException {
-		
-		String broker = "tcp://localhost:1883";
+		String broker = "tcp://192.168.1.67:1883";
 		String clientId = "raspberrypi";
 		
 		
 		MqttClient client = new MqttClient(broker, clientId, new MemoryPersistence());
 
 		
-		client.setCallback(new MqttCallback() {
-		
+		client.setCallback(new MqttCallbackExtended() {
+			
 			@Override
 			public void messageArrived(String topic, MqttMessage message) throws Exception {
+				
 			}
-		
+			
 			@Override
 			public void deliveryComplete(IMqttDeliveryToken token) {
-				System.out.println("PUBLISH SUCCESSFULL");
+				if(topic.equals(cmdTopic)) {
+					System.out.println("State changed!");
+				}
+				else {
+					System.out.println("Getting status...");
+				}
+				
 			}
-		
+			
 			@Override
-			public void connectionLost(Throwable cause) {			
+			public void connectionLost(Throwable cause) {
 			}
+			
+			@Override
+			public void connectComplete(boolean reconnect, String serverURI) {
+				System.out.println("Connected succesfully!");
+			}
+		});
 		
-		});	
+		
 	
 		MqttConnectOptions opt = new MqttConnectOptions();
 	
 		opt.setCleanSession(true);
 	
-		System.out.println("CONNECTIONG TO BROKER " + broker);
+		System.out.println("Connceting to broker at: " + broker);
 	
 		client.connect(opt);
-	
-		System.out.println("CONNECT SUCCESSED");
-		
+			
 		return client;
 	}
 	
