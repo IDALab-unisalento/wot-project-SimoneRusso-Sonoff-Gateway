@@ -59,32 +59,16 @@ public class SonoffGatewayApplication{
 		}
         System.out.println("Connected succefully to Firebase");
         
-
-        File file = new File("./tokens.json");  
-        JSONParser parser = new JSONParser();
-		Reader reader;
-		List<String> tokens = new ArrayList<>();
-		try {
-			file.createNewFile();
-			reader = new FileReader("./tokens.json");
-			JSONObject jsonObject = (JSONObject) parser.parse(reader);
-			Set<String> keys = jsonObject.keySet(); 
-			System.out.println(keys);
-			tokens = (List<String>) jsonObject.get(keys.toArray()[0].toString());
-			for(String tok: tokens) {
-				System.out.println(tok);
-			}
-			
-		} catch (IOException | ParseException e) {
-			e.printStackTrace();
-		}
+		File file = new File("./tokens.json");  
+		file.createNewFile();
+        
 		
-        connectAndSubscribeMqtt((ArrayList<String>) tokens);
+        connectAndSubscribeMqtt();
         
         
 	}
 
-	private static void connectAndSubscribeMqtt(ArrayList<String> tokens) {
+	private static void connectAndSubscribeMqtt() {
 		String broker = "tcp://localhost:1883";
 		
 		String statTopic = "stat/tasmota_8231A8/POWER1";
@@ -143,6 +127,27 @@ public class SonoffGatewayApplication{
     			public void messageArrived(String topic, MqttMessage message) throws Exception {
     				String status = new String(message.getPayload(), StandardCharsets.UTF_8);
     				System.out.println("A change of status occured, status: " + status);
+    				
+    				
+    				
+    		        JSONParser parser = new JSONParser();
+    				Reader reader;
+    				List<String> tokens = new ArrayList<>();
+    				try {
+    					reader = new FileReader("./tokens.json");
+    					JSONObject jsonObject = (JSONObject) parser.parse(reader);
+    					Set<String> keys = jsonObject.keySet(); 
+    					System.out.println(keys);
+    					tokens = (List<String>) jsonObject.get(keys.toArray()[0].toString());
+    					for(String tok: tokens) {
+    						System.out.println(tok);
+    					}
+    					
+    				} catch (IOException | ParseException e) {
+    					e.printStackTrace();
+    				}
+    				
+    				
     				Notification.Builder builder = Notification.builder();
     				MulticastMessage notMess = MulticastMessage.builder()
     						.setNotification(builder.build())
