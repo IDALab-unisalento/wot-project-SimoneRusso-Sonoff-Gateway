@@ -65,7 +65,7 @@ public class Controller {
 	
 	@RequestMapping(value="changeStatusOFF", method = RequestMethod.GET)
 	public ResponseEntity<Boolean> changeStatusOFF() throws Exception{
-try {
+		try {
 			
 			MqttClient client = connectToBroker(cmdTopic);
 			

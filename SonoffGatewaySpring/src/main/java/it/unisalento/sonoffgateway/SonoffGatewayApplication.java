@@ -88,6 +88,8 @@ public class SonoffGatewayApplication{
 		String broker = "tcp://localhost:1883";
 		
 		String statTopic = "stat/tasmota_8231A8/POWER1";
+		String reqToipic = "cmnd/tasmota_8231A8/Power1";
+
 		
 		MqttMessage message = new MqttMessage();
 
@@ -154,6 +156,7 @@ public class SonoffGatewayApplication{
     				    // See the BatchResponse reference documentation
     				    // for the contents of response.
     				System.out.println(response.getSuccessCount()+"/"+tokens.size() + " messages were sent successfully");
+    				
     				    				
     				
 				}
