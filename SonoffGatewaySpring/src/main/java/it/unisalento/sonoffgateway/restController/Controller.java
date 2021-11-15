@@ -60,8 +60,6 @@ public class Controller {
 			}
 	}
 	
-
-	
 	@RequestMapping(value="getStatus/{clientId}", method = RequestMethod.GET)
 	public String getStatus(@PathVariable("clientId") String clientId) throws MqttException{
 		try {
