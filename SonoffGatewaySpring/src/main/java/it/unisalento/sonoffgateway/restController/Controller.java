@@ -81,7 +81,7 @@ public class Controller {
 			while(client.isConnected());
 			System.out.println("Client " + client.getClientId() + " disconnected succesfully");
 			client.close();
-			return status.split(",")[8].split(":")[1];
+			return status.split(",")[8].split(":")[1]; //OTTENGO LO STATO DI POWER1
 		}catch (MqttException e) {
 			System.out.println("Something went wrong while getting status!\n" + e.getMessage());
 			throw e;
