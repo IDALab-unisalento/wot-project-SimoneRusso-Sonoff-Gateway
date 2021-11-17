@@ -21,8 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class Controller {
 
 	private String cmdTopic = "cmnd/tasmota_8231A8/POWER1";
-	private String reqToipic = "cmnd/tasmota_8231A8/Power1";
-	private String statTopic = "stat/tasmota_8231A8/POWER1";
+	private String reqToipic = "cmnd/tasmota_8231A8/STATUS11";
+	private String statTopic = "stat/tasmota_8231A8/STATUS11";
 	private String broker = "tcp://192.168.1.67:1883";		
 	
 	String status = new String();
@@ -75,12 +75,13 @@ public class Controller {
 				}
 			});
 			MqttMessage message = new MqttMessage();
+			message.setPayload("0".getBytes());
 			System.out.println("Trying to get status...");
 			client.publish(reqToipic, message);	//BLOCKING
 			while(client.isConnected());
 			System.out.println("Client " + client.getClientId() + " disconnected succesfully");
 			client.close();
-			return status;
+			return status.split(",")[8].split(":")[1];
 		}catch (MqttException e) {
 			System.out.println("Something went wrong while getting status!\n" + e.getMessage());
 			throw e;

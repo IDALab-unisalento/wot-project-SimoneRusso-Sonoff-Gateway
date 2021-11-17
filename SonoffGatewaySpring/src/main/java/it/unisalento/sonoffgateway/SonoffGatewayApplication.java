@@ -19,6 +19,7 @@ import org.eclipse.paho.client.mqttv3.IMqttMessageListener;
 import org.eclipse.paho.client.mqttv3.MqttCallbackExtended;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.springframework.boot.SpringApplication;
@@ -53,13 +54,13 @@ public class SonoffGatewayApplication{
         System.out.println("Connected succefully to Firebase");        
 		File file = new File("./tokens.json");  
 		file.createNewFile();
-       connectAndSubscribeMqtt();
+        connectAndSubscribeMqtt();
         
         
 	}
 
 	private static void connectAndSubscribeMqtt() {
-		String broker = "tcp://localhost:1883";
+		String broker = "tcp://192.168.1.67:1883";		
 		String statTopic = "stat/tasmota_8231A8/POWER1";
 		String clientId = "notificationChannel";
         try {
@@ -77,6 +78,11 @@ public class SonoffGatewayApplication{
 				@Override
 				public void connectionLost(Throwable cause) {
 					System.out.println("Something went wrong with connection!\n"+ cause.getMessage());
+					try {
+						client.reconnect();
+					} catch (MqttException e) {
+						e.printStackTrace();
+					}
 				}
 				
 				@Override
