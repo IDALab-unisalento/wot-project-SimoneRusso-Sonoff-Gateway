@@ -25,9 +25,17 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+import com.google.api.core.ApiFuture;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.firestore.CollectionReference;
+import com.google.cloud.firestore.DocumentReference;
+import com.google.cloud.firestore.DocumentSnapshot;
+import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.QueryDocumentSnapshot;
+import com.google.cloud.firestore.QuerySnapshot;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import com.google.firebase.cloud.FirestoreClient;
 import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.MulticastMessage;
@@ -45,6 +53,7 @@ public class SonoffGatewayApplication{
         	FileInputStream serviceAccount = new FileInputStream("./sonoff-66f45-firebase-adminsdk-uyqwv-6627f88f88.json");
         	FirebaseOptions options = FirebaseOptions.builder()
         			.setCredentials(GoogleCredentials.fromStream(serviceAccount))
+        			.setProjectId("sonoff-66f45")
         			.build();
         	FirebaseApp.initializeApp(options);
         }catch (Exception e) {
@@ -99,21 +108,15 @@ public class SonoffGatewayApplication{
     			public void messageArrived(String topic, MqttMessage message) throws Exception {
     				String status = new String(message.getPayload(), StandardCharsets.UTF_8);
     				System.out.println("A change of status occured, status: " + status);
-    		        JSONParser parser = new JSONParser();
-    				Reader reader;
     				List<String> tokens = new ArrayList<>();
-    				try {
-    					reader = new FileReader("./tokens.json");
-    					JSONObject jsonObject = (JSONObject) parser.parse(reader);
-    					Set<String> keys = jsonObject.keySet(); 
-    					System.out.println(keys);
-    					tokens = (List<String>) jsonObject.get(keys.toArray()[0].toString());
-    					for(String tok: tokens) {
-    						System.out.println(tok);
-    					}
-    				} catch (IOException | ParseException e) {
-    					e.printStackTrace();
-    				}
+    				Firestore db = FirestoreClient.getFirestore();
+    	        	ApiFuture<QuerySnapshot> future = db.collection("tokens").get(); 
+    	        	List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+    	        	for (DocumentSnapshot document : documents) {
+    	        		  System.out.println(document.getId() + " => " + document.getString("token"));
+    	        		  tokens.add(document.getString("token"));
+    	        		}
+    	        	
     				Notification.Builder builder = Notification.builder();
     				MulticastMessage notMess = MulticastMessage.builder()
     						.setNotification(builder.build())
