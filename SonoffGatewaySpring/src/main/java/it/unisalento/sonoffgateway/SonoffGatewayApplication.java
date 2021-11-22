@@ -59,7 +59,7 @@ public class SonoffGatewayApplication{
 	}
 
 	private static void connectAndSubscribeMqtt() {
-		String broker = "tcp://192.168.1.67:1883";		
+		String broker = "tcp://localhost:1883";		
 		String statTopic = "stat/tasmota_8231A8/POWER1";
 		String clientId = "notificationChannel";
         try {

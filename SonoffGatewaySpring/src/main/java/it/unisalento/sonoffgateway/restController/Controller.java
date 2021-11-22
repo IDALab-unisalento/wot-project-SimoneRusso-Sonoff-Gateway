@@ -23,7 +23,7 @@ public class Controller {
 	private String cmdTopic = "cmnd/tasmota_8231A8/POWER1";
 	private String reqToipic = "cmnd/tasmota_8231A8/STATUS11";
 	private String statTopic = "stat/tasmota_8231A8/STATUS11";
-	private String broker = "tcp://192.168.1.67:1883";		
+	private String broker = "tcp://localhost:1883";		
 	
 	String status = new String();
 		
@@ -69,7 +69,7 @@ public class Controller {
 			client.subscribe(statTopic, new IMqttMessageListener() {
 				@Override
 				public void messageArrived(String topic, MqttMessage message) throws Exception {
-					status = new String(message.getPayload(), StandardCharsets.UTF_8);
+					status = new String(message.getPayload(), StandardCharsets.UTF_8).split(",")[8].split(":")[1];
 					System.out.println("Getted status: " + status);
 					client.disconnect();
 				}
@@ -81,7 +81,10 @@ public class Controller {
 			while(client.isConnected());
 			System.out.println("Client " + client.getClientId() + " disconnected succesfully");
 			client.close();
-			return status.split(",")[8].split(":")[1]; //OTTENGO LO STATO DI POWER1
+			String s = status;
+			int lenght = status.length();
+			s = status.substring(1, lenght-1);
+			return s; //OTTENGO LO STATO DI POWER1
 		}catch (MqttException e) {
 			System.out.println("Something went wrong while getting status!\n" + e.getMessage());
 			throw e;
