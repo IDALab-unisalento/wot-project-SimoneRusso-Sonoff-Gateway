@@ -51,8 +51,6 @@ public class SonoffGatewayApplication{
         	throw e;
 		}
         System.out.println("Connected succefully to Firebase");        
-		File file = new File("./tokens.json");  
-		file.createNewFile();
         connectAndSubscribeMqtt();
         
         
