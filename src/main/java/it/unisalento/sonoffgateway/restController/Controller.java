@@ -1,5 +1,6 @@
 package it.unisalento.sonoffgateway.restController;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
@@ -17,6 +18,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.squareup.okhttp.FormEncodingBuilder;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.RequestBody;
+import com.squareup.okhttp.Response;
+
 @RestController
 public class Controller {
 
@@ -24,11 +31,17 @@ public class Controller {
 	private String reqToipic = "cmnd/tasmota_8231A8/STATUS11";
 	private String statTopic = "stat/tasmota_8231A8/STATUS11";
 	private String broker = "tcp://localhost:1883";		
-	
+	private String authAddress = "http://192.168.1.100:8180/auth/realms/MyRealm/protocol/openid-connect/userinfo";
 	String status = new String();
+	OkHttpClient client = new OkHttpClient();
+
+	
 		
-	@RequestMapping(value="changeStatusON/{clientId}", method = RequestMethod.GET)
-	public ResponseEntity<Boolean> changeStatusON(@PathVariable("clientId") String clientId){
+	@RequestMapping(value="changeStatusON/{clientId}/{token}", method = RequestMethod.GET)
+	public ResponseEntity<Boolean> changeStatusON(@PathVariable("clientId") String clientId,  @PathVariable("token") String token){
+		if(!checkToken(token)) {
+			return new ResponseEntity<Boolean>(HttpStatus.UNAUTHORIZED);
+		}
 		try {
 			MqttClient client = connectToBroker(cmdTopic, clientId);
 			MqttMessage message = new MqttMessage("ON".getBytes());
@@ -43,8 +56,11 @@ public class Controller {
 			return new ResponseEntity<Boolean>(HttpStatus.BAD_GATEWAY);
 			}
 	}
-	@RequestMapping(value="changeStatusOFF/{clientId}", method = RequestMethod.GET)
-	public ResponseEntity<Boolean> changeStatusOFF(@PathVariable("clientId") String clientId) throws Exception{
+	@RequestMapping(value="changeStatusOFF/{clientId}/{token}", method = RequestMethod.GET)
+	public ResponseEntity<Boolean> changeStatusOFF(@PathVariable("clientId") String clientId, @PathVariable("token") String token) throws Exception{
+		if(!checkToken(token)) {
+			return new ResponseEntity<Boolean>(HttpStatus.UNAUTHORIZED);
+		}
 		try {
 			MqttClient client = connectToBroker(cmdTopic, clientId);
 			MqttMessage message = new MqttMessage("OFF".getBytes());
@@ -60,8 +76,11 @@ public class Controller {
 			}
 	}
 	
-	@RequestMapping(value="getStatus/{clientId}", method = RequestMethod.GET)
-	public String getStatus(@PathVariable("clientId") String clientId) throws MqttException{
+	@RequestMapping(value="getStatus/{clientId}/{token}", method = RequestMethod.GET)
+	public String getStatus(@PathVariable("clientId") String clientId, @PathVariable("token") String token) throws MqttException{
+		if(!checkToken(token)) {
+			return HttpStatus.UNAUTHORIZED.toString();
+		}
 		try {
 			status = "";
 			MqttClient client = connectToBroker(statTopic, clientId);;
@@ -123,6 +142,27 @@ public class Controller {
 		System.out.println("Connceting to broker at: " + broker);
 		client.connect(opt);
 		return client;
+	}
+	
+	private Boolean checkToken(String token) {
+		Request request = new Request.Builder()
+			      .url(authAddress)
+			      .header("Content-Type", "application/json")
+			      .header("Authorization","Bearer "+ token)
+			      .get()
+			      .build();
+		 Response response;
+		 try {
+				response = client.newCall(request).execute();
+				if (response.isSuccessful()) {
+					return true;
+				}
+				return false;
+			} 
+		 catch (IOException e) {
+				e.printStackTrace();
+			}
+		return null;
 	}
 	
 	 
