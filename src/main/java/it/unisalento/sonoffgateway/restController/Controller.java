@@ -31,7 +31,7 @@ public class Controller {
 	private String reqToipic = "cmnd/tasmota_8231A8/STATUS11";
 	private String statTopic = "stat/tasmota_8231A8/STATUS11";
 	private String broker = "tcp://localhost:1883";		
-	private String authAddress = "http://192.168.1.100:8180/auth/realms/MyRealm/protocol/openid-connect/userinfo";
+	private String authAddress = "http://192.168.1.100:8180/auth/realms/master/protocol/openid-connect/userinfo";
 	String status = new String();
 	OkHttpClient client = new OkHttpClient();
 
@@ -53,11 +53,11 @@ public class Controller {
 			return new ResponseEntity<Boolean>(HttpStatus.OK);
 		}catch (Exception e) {
 			System.out.println("Something went wrong while changing status!\n" + e.getMessage());
-			return new ResponseEntity<Boolean>(HttpStatus.BAD_GATEWAY);
+			return new ResponseEntity<Boolean>(HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 	}
 	@RequestMapping(value="changeStatusOFF/{clientId}/{token}", method = RequestMethod.GET)
-	public ResponseEntity<Boolean> changeStatusOFF(@PathVariable("clientId") String clientId, @PathVariable("token") String token) throws Exception{
+	public ResponseEntity<Boolean> changeStatusOFF(@PathVariable("clientId") String clientId, @PathVariable("token") String token){
 		if(!checkToken(token)) {
 			return new ResponseEntity<Boolean>(HttpStatus.UNAUTHORIZED);
 		}
@@ -72,14 +72,14 @@ public class Controller {
 			return new ResponseEntity<Boolean>(HttpStatus.OK);
 		}catch (Exception e) {
 			System.out.println("Something went wrong while changing status!\n" + e.getMessage());
-			return new ResponseEntity<Boolean>(HttpStatus.BAD_GATEWAY);
+			return new ResponseEntity<Boolean>(HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 	}
 	
 	@RequestMapping(value="getStatus/{clientId}/{token}", method = RequestMethod.GET)
-	public String getStatus(@PathVariable("clientId") String clientId, @PathVariable("token") String token) throws MqttException{
+	public ResponseEntity<String> getStatus(@PathVariable("clientId") String clientId, @PathVariable("token") String token){
 		if(!checkToken(token)) {
-			return HttpStatus.UNAUTHORIZED.toString();
+			return new ResponseEntity<String>(HttpStatus.UNAUTHORIZED);
 		}
 		try {
 			status = "";
@@ -103,10 +103,10 @@ public class Controller {
 			String s = status;
 			int lenght = status.length();
 			s = status.substring(1, lenght-1);
-			return s; //OTTENGO LO STATO DI POWER1
+			return new ResponseEntity<String>(s, HttpStatus.OK); //OTTENGO LO STATO DI POWER1
 		}catch (MqttException e) {
 			System.out.println("Something went wrong while getting status!\n" + e.getMessage());
-			throw e;
+			return new ResponseEntity<String>(HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 		
 	}
