@@ -2,6 +2,8 @@ package it.unisalento.sonoffgateway.restController;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.IMqttMessageListener;
@@ -11,6 +13,8 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,16 +22,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.github.underscore.U;
 import com.squareup.okhttp.FormEncodingBuilder;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.RequestBody;
 import com.squareup.okhttp.Response;
 
+import model.User;
+
 @RestController
 public class Controller {
 
-	private String cmdTopic = "cmnd/tasmota_8231A8/POWER1";
+	private List<String> cmdTopic = Arrays.asList("cmnd/tasmota_8231A8/POWER1", "cmnd/tasmota_8231A8/POWER2", "cmnd/tasmota_8231A8/POWER3");
 	private String reqToipic = "cmnd/tasmota_8231A8/STATUS11";
 	private String statTopic = "stat/tasmota_8231A8/STATUS11";
 	private String broker = "tcp://localhost:1883";		
@@ -35,64 +42,82 @@ public class Controller {
 	//STUDIUM
 	//private String authAddress = "http://10.20.72.9:8180/auth/realms/master/protocol/openid-connect/userinfo";
 	//CASA
-	private String authAddress = "http://192.168.1.100:8180/auth/realms/master/protocol/openid-connect/userinfo";
+	//private String authAddress = "http://192.168.1.100:8180/auth/realms/master/protocol/openid-connect/userinfo";
+	//HOTSPOT
+	private String authAddress = "http://172.20.10.4:8180/auth/realms/MyRealm/protocol/openid-connect/userinfo";
+	String refreshAddress="http://172.20.10.4:8180/auth/realms/MyRealm/protocol/openid-connect/token";
+
 	String status = new String();
 	OkHttpClient client = new OkHttpClient();
 
 	
 		
-	@RequestMapping(value="changeStatusON/{clientId}/{token}", method = RequestMethod.GET)
-	public ResponseEntity<Boolean> changeStatusON(@PathVariable("clientId") String clientId,  @PathVariable("token") String token){
-		if(!checkToken(token)) {
-			return new ResponseEntity<Boolean>(HttpStatus.UNAUTHORIZED);
+	@RequestMapping(value="changeStatusON/{clientId}/{input}", method = RequestMethod.POST)
+	public ResponseEntity<User> changeStatusON(@PathVariable("clientId") String clientId,  @PathVariable("token") String token, @PathVariable("input") int input, @org.springframework.web.bind.annotation.RequestBody User user){
+		User tempUser;
+		try {
+			tempUser = checkToken(user);
+		} catch (Exception e1) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
 		try {
-			MqttClient client = connectToBroker(cmdTopic, clientId);
+			MqttClient client = connectToBroker(cmdTopic.get(input-1), clientId);
 			MqttMessage message = new MqttMessage("ON".getBytes());
 			System.out.println("Trying to change status to ON...");
-			client.publish(cmdTopic, message);	//BLOCKING
+			client.publish(cmdTopic.get(input-1), message);	//BLOCKING
 			client.disconnect(100);
 			System.out.println("Client " + client.getClientId() + " disconnected succesfully");
 			client.close();
-			return new ResponseEntity<Boolean>(HttpStatus.OK);
+			return new ResponseEntity<>(tempUser, HttpStatus.OK);
 		}catch (Exception e) {
 			System.out.println("Something went wrong while changing status!\n" + e.getMessage());
-			return new ResponseEntity<Boolean>(HttpStatus.INTERNAL_SERVER_ERROR);
+			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 	}
-	@RequestMapping(value="changeStatusOFF/{clientId}/{token}", method = RequestMethod.GET)
-	public ResponseEntity<Boolean> changeStatusOFF(@PathVariable("clientId") String clientId, @PathVariable("token") String token){
-		if(!checkToken(token)) {
-			return new ResponseEntity<Boolean>(HttpStatus.UNAUTHORIZED);
-		}
+	@RequestMapping(value="changeStatusOFF/{clientId}/{input}", method = RequestMethod.POST)
+	public ResponseEntity<User> changeStatusOFF(@PathVariable("clientId") String clientId, @PathVariable("input") int input, @org.springframework.web.bind.annotation.RequestBody User user){
+		User tempUser;
 		try {
-			MqttClient client = connectToBroker(cmdTopic, clientId);
+			tempUser = checkToken(user);
+		} catch (Exception e1) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+		
+		try {
+			MqttClient client = connectToBroker(cmdTopic.get(input-1), clientId);
 			MqttMessage message = new MqttMessage("OFF".getBytes());
 			System.out.println("Trying to change status to OFF...");
-			client.publish(cmdTopic, message); //BLOCKING
+			client.publish(cmdTopic.get(input-1), message); //BLOCKING
 			client.disconnect(100);
 			System.out.println("Client " + client.getClientId() + " disconnected succesfully");
 			client.close();
-			return new ResponseEntity<Boolean>(HttpStatus.OK);
+			return new ResponseEntity<>(tempUser, HttpStatus.OK);
+
 		}catch (Exception e) {
 			System.out.println("Something went wrong while changing status!\n" + e.getMessage());
-			return new ResponseEntity<Boolean>(HttpStatus.INTERNAL_SERVER_ERROR);
+			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 	}
 	
-	@RequestMapping(value="getStatus/{clientId}/{token}", method = RequestMethod.GET)
-	public ResponseEntity<String> getStatus(@PathVariable("clientId") String clientId, @PathVariable("token") String token){
-		if(!checkToken(token)) {
-			return new ResponseEntity<String>(HttpStatus.UNAUTHORIZED);
-		}
+	@RequestMapping(value="getStatus/{clientId}/{input}", method = RequestMethod.POST)
+	public ResponseEntity<String> getStatus(@PathVariable("clientId") String clientId, @PathVariable("input") int input, @org.springframework.web.bind.annotation.RequestBody User user){
+		User tempUser;
 		try {
+			tempUser = checkToken(user);
+		} catch (Exception e1) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+		
+		try {
+			int pos= input+7;
 			status = "";
 			MqttClient client = connectToBroker(statTopic, clientId);;
 			System.out.println("Trying to subscribe to "+statTopic);
 			client.subscribe(statTopic, new IMqttMessageListener() {
 				@Override
 				public void messageArrived(String topic, MqttMessage message) throws Exception {
-					status = new String(message.getPayload(), StandardCharsets.UTF_8).split(",")[8].split(":")[1];
+					System.out.println(message);
+					status = new String(message.getPayload(), StandardCharsets.UTF_8).split(",")[pos].split(":")[1];
 					System.out.println("Getted status: " + status);
 					client.disconnect();
 				}
@@ -107,7 +132,22 @@ public class Controller {
 			String s = status;
 			int lenght = status.length();
 			s = status.substring(1, lenght-1);
-			return new ResponseEntity<String>(s, HttpStatus.OK); //OTTENGO LO STATO DI POWER1
+			
+			JSONObject jsonObj = new JSONObject();
+			if(tempUser!=null) {
+				String sToJ = U.objectBuilder()
+			            .add("user", U.objectBuilder()
+			                            .add("username", tempUser.getUsername())
+			                            .add("role", tempUser.getRole())
+			                            .add("token", tempUser.getToken())
+			                            .add("refreshToken", tempUser.getRefreshToken())
+			                            		)
+			            .add("status", s)
+			            .toJson();
+				return new ResponseEntity<String>(sToJ, HttpStatus.OK);
+
+			}
+			return new ResponseEntity<String>(s, HttpStatus.OK);
 		}catch (MqttException e) {
 			System.out.println("Something went wrong while getting status!\n" + e.getMessage());
 			return new ResponseEntity<String>(HttpStatus.INTERNAL_SERVER_ERROR);
@@ -148,26 +188,61 @@ public class Controller {
 		return client;
 	}
 	
-	private Boolean checkToken(String token) {
+	
+	private User checkToken(User user) throws Exception {
 		Request request = new Request.Builder()
-			      .url(authAddress)
-			      .header("Content-Type", "application/json")
-			      .header("Authorization","Bearer "+ token)
-			      .get()
-			      .build();
-		 Response response;
-		 try {
-				response = client.newCall(request).execute();
-				if (response.isSuccessful()) {
-					return true;
-				}
-				return false;
-			} 
-		 catch (IOException e) {
-				e.printStackTrace();
+				.url(authAddress)
+				.header("Content-Type", "application/json")
+				.header("Authorization","Bearer "+ user.getToken())
+				.get()
+				.build();
+		Response response;
+		try {
+			response = client.newCall(request).execute();
+			if (response.isSuccessful()) {
+				return null;
 			}
+			else {
+				user = executeRefresh(user);
+				return user; //EXPECTED
+			}
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+		throw new Exception();
+	}
+	
+	public User executeRefresh(User user) throws Exception{
+		com.squareup.okhttp.RequestBody requestBody = new FormEncodingBuilder()
+	    	     .add("grant_type", "refresh_token")
+	    	     .add("refresh_token", user.getRefreshToken())
+	    	     .add("client_id", "backend")
+	    	     .add("client_secret", "eLFYzBFFDlJrA9dTmNPnkTwhiipyB8x8")
+	    	     .build();
+	    
+	    Request request = new Request.Builder()
+	    		.url(refreshAddress)
+	    		.post(requestBody)
+	            .build();
+	    Response response;
+	    try {
+	    	response = client.newCall(request).execute();
+	    	if(response.isSuccessful()) {
+	    		JSONParser parser = new JSONParser();  
+	    		JSONObject json = (JSONObject) parser.parse(response.body().string());  
+	    		System.out.println(json);
+	    		user.setToken(json.get("access_token").toString());
+	    		user.setRefreshToken(json.get("refresh_token").toString());  
+		    	return user;
+	    	}
+	    	throw new Exception();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return null;
 	}
+
 	
 	 
 }

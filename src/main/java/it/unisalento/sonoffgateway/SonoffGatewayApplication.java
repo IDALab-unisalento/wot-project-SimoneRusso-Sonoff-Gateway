@@ -1,7 +1,10 @@
 package it.unisalento.sonoffgateway;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.IMqttMessageListener;
 import org.eclipse.paho.client.mqttv3.MqttCallbackExtended;
@@ -21,14 +24,14 @@ public class SonoffGatewayApplication{
         app.setDefaultProperties(Collections
           .singletonMap("server.port", "8081"));
         app.run(args);	             
-        connectAndSubscribeMqtt();
+        //connectAndSubscribeMqtt();
         
         
 	}
 
 	private static void connectAndSubscribeMqtt() {
 		String broker = "tcp://localhost:1883";		
-		String statTopic = "stat/tasmota_8231A8/POWER1";
+		List<String> statTopic = Arrays.asList("stat/tasmota_8231A8/POWER1","stat/tasmota_8231A8/POWER2","stat/tasmota_8231A8/POWER3");
 		String clientId = "notificationChannel";
         try {
         	MqttClient client = new MqttClient(broker, clientId, new MemoryPersistence());
@@ -61,11 +64,25 @@ public class SonoffGatewayApplication{
     		opt.setCleanSession(true);
     		System.out.println("CONNECTIONG TO BROKER " + broker);
     		client.connect(opt);
-    		client.subscribe(statTopic, new IMqttMessageListener() {
+    		client.subscribe(statTopic.get(0), new IMqttMessageListener() {
     			@Override
     			public void messageArrived(String topic, MqttMessage message) throws Exception {
     				String status = new String(message.getPayload(), StandardCharsets.UTF_8);
-    				System.out.println("A change of status occured, status: " + status);
+    				System.out.println("A change of status occured, Input 1 status: " + status);
+				}
+    		});
+    		client.subscribe(statTopic.get(1), new IMqttMessageListener() {
+    			@Override
+    			public void messageArrived(String topic, MqttMessage message) throws Exception {
+    				String status = new String(message.getPayload(), StandardCharsets.UTF_8);
+    				System.out.println("A change of status occured, Input 2 status: " + status);
+				}
+    		});
+    		client.subscribe(statTopic.get(2), new IMqttMessageListener() {
+    			@Override
+    			public void messageArrived(String topic, MqttMessage message) throws Exception {
+    				String status = new String(message.getPayload(), StandardCharsets.UTF_8);
+    				System.out.println("A change of status occured, Input 3 status: " + status);
 				}
     		});
 			System.out.println("Subscribed succesfully to: " +statTopic);
