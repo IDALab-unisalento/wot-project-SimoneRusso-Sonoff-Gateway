@@ -12,7 +12,6 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.github.underscore.U;
 import com.squareup.okhttp.FormEncodingBuilder;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -31,8 +31,7 @@ import it.unisalento.sonoffgateway.model.User;
 
 @RestController
 public class Controller {
-	@Value("${address.ip}")
-	private String ip;
+	private String ip = "10.3.141.130";
 
 	private final String cmdTopic1 = "cmnd/tasmota_8231A8/POWER1";
 	private final String reqToipic1 = "cmnd/tasmota_8231A8/POWER1";
@@ -115,6 +114,22 @@ public class Controller {
 			System.out.println("Client " + client.getClientId() + " disconnected succesfully");
 			client.close();
 			String s = status1;
+			
+			JSONObject jsonObj = new JSONObject();
+			if(user!=null) {
+				String sToJ = U.objectBuilder()
+			            .add("user", U.objectBuilder()
+			                            .add("username", user.getUsername())
+			                            .add("role", user.getRole())
+			                            .add("token", user.getToken())
+			                            .add("refreshToken", user.getRefreshToken())
+			                            		)
+			            .add("status", s)
+			            .toJson();
+				return new ResponseEntity<String>(sToJ, HttpStatus.OK);
+
+			}
+			
 			return new ResponseEntity<>(s, HttpStatus.OK); //OTTENGO LO STATO DI POWER1
 		}
 		catch (MqttException e) {
@@ -127,6 +142,7 @@ public class Controller {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}
 			else {
+				e.printStackTrace();
 				return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 		}
