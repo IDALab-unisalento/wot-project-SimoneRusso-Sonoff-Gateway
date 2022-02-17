@@ -21,7 +21,7 @@ public class SonoffGatewayApplication{
         app.setDefaultProperties(Collections
           .singletonMap("server.port", "8081"));
         app.run(args);	             
-        connectAndSubscribeMqtt();
+        //connectAndSubscribeMqtt();
         
         
 	}

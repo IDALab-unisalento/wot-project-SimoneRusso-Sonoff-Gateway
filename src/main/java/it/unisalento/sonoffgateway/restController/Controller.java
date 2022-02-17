@@ -31,7 +31,7 @@ public class Controller {
 	private String reqToipic = "cmnd/tasmota_8231A8/STATUS11";
 	private String statTopic = "stat/tasmota_8231A8/STATUS11";
 	private String broker = "tcp://localhost:1883";		
-	private String authAddress = "http://192.168.1.100:8180/auth/realms/master/protocol/openid-connect/userinfo";
+	private String authAddress = "http://172.20.10.4:8180/auth/realms/MyRealm/protocol/openid-connect/userinfo";
 	String status = new String();
 	OkHttpClient client = new OkHttpClient();
 
