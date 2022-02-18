@@ -13,6 +13,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.github.underscore.U;
+import com.github.underscore.U.Builder;
 import com.squareup.okhttp.FormEncodingBuilder;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -44,7 +46,7 @@ public class Controller {
 
 	
 		
-	@RequestMapping(value="changeStatusON/{clientId}", method = RequestMethod.GET)
+	@RequestMapping(value="changeStatusON/{clientId}", method = RequestMethod.POST)
 	public ResponseEntity<User> changeStatusON(@PathVariable("clientId") String clientId, @RequestBody User user){
 		try {
 			user = checkToken(user); //LANCIA UN ECCEZIONE SE IL TOKEN NON E' PIU' VALIDO E NON PUO' ESSERE REFRESHATO
@@ -67,7 +69,7 @@ public class Controller {
 		}	
 	}
 	
-	@RequestMapping(value="changeStatusOFF/{clientId}", method = RequestMethod.GET)
+	@RequestMapping(value="changeStatusOFF/{clientId}", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<User> changeStatusOFF(@PathVariable("clientId") String clientId, @RequestBody User user){
 		
 		try {
@@ -91,7 +93,7 @@ public class Controller {
 		}	
 	}
 	
-	@RequestMapping(value="getStatus1/{clientId}", method = RequestMethod.GET)
+	@RequestMapping(value="getStatus1/{clientId}", method = RequestMethod.POST)
 	public ResponseEntity<String> getStatus1(@PathVariable("clientId") String clientId, @RequestBody User user){
 		try {
 			user = checkToken(user);
@@ -115,22 +117,19 @@ public class Controller {
 			client.close();
 			String s = status1;
 			
-			JSONObject jsonObj = new JSONObject();
-			if(user!=null) {
-				String sToJ = U.objectBuilder()
-			            .add("user", U.objectBuilder()
-			                            .add("username", user.getUsername())
-			                            .add("role", user.getRole())
-			                            .add("token", user.getToken())
-			                            .add("refreshToken", user.getRefreshToken())
-			                            		)
-			            .add("status", s)
-			            .toJson();
-				return new ResponseEntity<String>(sToJ, HttpStatus.OK);
-
-			}
+			Builder builder = U.objectBuilder()
+					.add("status", s);
 			
-			return new ResponseEntity<>(s, HttpStatus.OK); //OTTENGO LO STATO DI POWER1
+			if(user!=null) {
+				builder
+					.add("user", U.objectBuilder()
+					.add("username", user.getUsername())
+					.add("role", user.getRole())
+					.add("token", user.getToken())
+					.add("refreshToken", user.getRefreshToken()));
+			}
+			String retValue = builder.toJson();
+			return new ResponseEntity<>(retValue, HttpStatus.OK); //OTTENGO LO STATO DI POWER1
 		}
 		catch (MqttException e) {
 			System.out.println("Something went wrong while getting status!\n" + e.getMessage());
