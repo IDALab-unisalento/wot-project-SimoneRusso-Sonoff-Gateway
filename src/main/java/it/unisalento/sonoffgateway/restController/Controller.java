@@ -43,6 +43,7 @@ public class Controller {
 	private final String refreshAddress="http://"+ip+":8180/auth/realms/MyRealm/protocol/openid-connect/token";
 	private String status1 = new String();
 	private OkHttpClient client = new OkHttpClient();
+	private final String INVALID_TOKEN = "Invalid token";
 
 	
 		
@@ -60,7 +61,7 @@ public class Controller {
 			return new ResponseEntity<>(user, HttpStatus.OK);
 			
 		}catch (Exception e) {
-			if(e.getMessage().equals("invalid token")) {
+			if(e.getMessage().equals(INVALID_TOKEN)) {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}
 			else {
@@ -84,7 +85,7 @@ public class Controller {
 			return new ResponseEntity<>(user, HttpStatus.OK);
 			
 		}catch (Exception e) {
-			if(e.getMessage().equals("invalid token")) {
+			if(e.getMessage().equals(INVALID_TOKEN)) {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}
 			else {
@@ -137,7 +138,7 @@ public class Controller {
 			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
 		} 
 		catch (Exception e) {
-			if(e.getMessage().equals("invalid token")) {
+			if(e.getMessage().equals(INVALID_TOKEN)) {
 				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 			}
 			else {
@@ -229,7 +230,7 @@ public class Controller {
 		    	return user;
 	    	}
 	    	else {
-	    		throw new Exception("Invalid token");	  
+	    		throw new Exception(INVALID_TOKEN);	  
 	    	}
 		}catch (Exception e) {
 			e.printStackTrace();
