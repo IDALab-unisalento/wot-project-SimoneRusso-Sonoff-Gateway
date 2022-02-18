@@ -12,6 +12,7 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,7 @@ import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
 
+import exception.InvalidTokenEx;
 import it.unisalento.sonoffgateway.model.User;
 
 
@@ -60,13 +62,17 @@ public class Controller {
 			client.close();	
 			return new ResponseEntity<>(user, HttpStatus.OK);
 			
-		}catch (Exception e) {
-			if(e.getMessage().equals(INVALID_TOKEN)) {
-				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-			}
-			else {
-				return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-			}
+		}catch (ParseException e) {
+			e.printStackTrace();
+			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (InvalidTokenEx e) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		} catch (IOException e) {
+			e.printStackTrace();
+			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (MqttException e) {
+			e.printStackTrace();
+			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
 		}	
 	}
 	
@@ -84,18 +90,22 @@ public class Controller {
 			client.close();	
 			return new ResponseEntity<>(user, HttpStatus.OK);
 			
-		}catch (Exception e) {
-			if(e.getMessage().equals(INVALID_TOKEN)) {
-				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-			}
-			else {
-				return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-			}
-		}	
+		}catch (ParseException e) {
+			e.printStackTrace();
+			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (InvalidTokenEx e) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		} catch (IOException e) {
+			e.printStackTrace();
+			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (MqttException e) {
+			e.printStackTrace();
+			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 	}
 	
 	@RequestMapping(value="getStatus1/{clientId}", method = RequestMethod.POST)
-	public ResponseEntity<String> getStatus1(@PathVariable("clientId") String clientId, @RequestBody User user){
+	public ResponseEntity<String> getStatus1(@PathVariable("clientId") String clientId, @RequestBody User user) throws ParseException, InvalidTokenEx, IOException{
 		try {
 			user = checkToken(user);
 			status1 = "";
@@ -136,15 +146,15 @@ public class Controller {
 			System.out.println("Something went wrong while getting status!\n" + e.getMessage());
 			e.printStackTrace();
 			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-		} 
-		catch (Exception e) {
-			if(e.getMessage().equals(INVALID_TOKEN)) {
-				return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-			}
-			else {
-				e.printStackTrace();
-				return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-			}
+		} catch (ParseException e) {
+			e.printStackTrace();
+			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (InvalidTokenEx e) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		} catch (IOException e) {
+			e.printStackTrace();
+			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+
 		}
 		
 		
@@ -183,7 +193,7 @@ public class Controller {
 		return client;
 	}
 	
-	private User checkToken(User user) throws Exception {
+	private User checkToken(User user) throws ParseException, InvalidTokenEx, IOException{
 		Request request = new Request.Builder()
 			      .url(authAddress)
 			      .header("Content-Type", "application/json")
@@ -206,7 +216,7 @@ public class Controller {
 			}
 	}
 	
-	private User executeRefresh(User user) throws Exception {
+	private User executeRefresh(User user) throws ParseException, IOException, InvalidTokenEx {
 		com.squareup.okhttp.RequestBody requestBody = new FormEncodingBuilder()
 	    	     .add("grant_type", "refresh_token")
 	    	     .add("refresh_token", user.getRefreshToken())
@@ -219,21 +229,25 @@ public class Controller {
 	    		.post(requestBody)
 	            .build();
 	    Response response;
-	    
 	    try {
-	    	response = client.newCall(request).execute();
-	    	if(response.isSuccessful()) {
+			response = client.newCall(request).execute();
+			if(response.isSuccessful()) {
 	    		JSONParser parser = new JSONParser();  
 	    		JSONObject json = (JSONObject) parser.parse(response.body().string());  
 	    		user.setToken(json.get("access_token").toString());
 	    		user.setRefreshToken(json.get("refresh_token").toString());  
 		    	return user;
 	    	}
-	    	else {
-	    		throw new Exception(INVALID_TOKEN);	  
+			else {
+	    		throw new InvalidTokenEx(INVALID_TOKEN);	  
 	    	}
-		}catch (Exception e) {
+		} catch (IOException e) {
 			e.printStackTrace();
+			throw e;
+		} catch (ParseException e) {
+			e.printStackTrace();
+			throw e;
+		} catch (InvalidTokenEx e) {
 			throw e;
 		}
 	}
