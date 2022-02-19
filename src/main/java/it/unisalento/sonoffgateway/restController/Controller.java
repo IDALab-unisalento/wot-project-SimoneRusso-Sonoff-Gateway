@@ -1,6 +1,8 @@
 package it.unisalento.sonoffgateway.restController;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.IMqttMessageListener;
@@ -38,12 +40,13 @@ public class Controller {
 	private String ip = "10.3.141.130";
 
 	private final String cmdTopic1 = "cmnd/tasmota_8231A8/POWER1";
-	private final String reqToipic1 = "cmnd/tasmota_8231A8/POWER1";
-	private final String statTopic1 = "stat/tasmota_8231A8/POWER1";
+	private final String reqTopic = "cmnd/tasmota_8231A8/STATUS11";
+	private final String statTopic = "stat/tasmota_8231A8/STATUS11";
 	private final String broker = "tcp://localhost:1883";		
 	private final String authAddress = "http://"+ip+":8180/auth/realms/MyRealm/protocol/openid-connect/userinfo";
 	private final String refreshAddress="http://"+ip+":8180/auth/realms/MyRealm/protocol/openid-connect/token";
-	private String status1 = new String();
+	//private String status1 = new String();
+	private final AtomicReference<String> status1 = new AtomicReference<String>();
 	private OkHttpClient client = new OkHttpClient();
 	private final String INVALID_TOKEN = "Invalid token";
 
@@ -108,26 +111,29 @@ public class Controller {
 	public ResponseEntity<String> getStatus1(@PathVariable("clientId") String clientId, @RequestBody User user) throws ParseException, InvalidTokenEx, IOException{
 		try {
 			user = checkToken(user);
-			status1 = "";
-			MqttClient client = connectToBroker(statTopic1, clientId);;
-			System.out.println("Trying to subscribe to "+statTopic1);
-			client.subscribe(statTopic1, new IMqttMessageListener() {
+			//status1 = "";
+			MqttClient client = connectToBroker(statTopic, clientId);;
+			System.out.println("Trying to subscribe to "+statTopic);
+			client.subscribe(statTopic, new IMqttMessageListener() {
 				@Override
 				public void messageArrived(String topic, MqttMessage message) throws Exception {
-					status1 = new String(message.getPayload());
+					//status1 = new String(message.getPayload());
+					status1.set(new String(message.getPayload(), StandardCharsets.UTF_8).split(",")[8].split(":")[1]);
 					System.out.println("Getted status: " + status1);
 					client.disconnect();
 				}
 			});
 			MqttMessage message = new MqttMessage();
-			message.setPayload("".getBytes());
+			//message.setPayload("".getBytes());
+			message.setPayload("0".getBytes());
 			System.out.println("Trying to get status...");
-			client.publish(reqToipic1, message);	//BLOCKING
+			client.publish(reqTopic, message);	//BLOCKING
 			while(client.isConnected());
 			System.out.println("Client " + client.getClientId() + " disconnected succesfully");
 			client.close();
-			String s = status1;
-			
+			int lenght = status1.get().length();
+			String s = status1.get().substring(1, lenght-1);
+
 			Builder builder = U.objectBuilder()
 					.add("status", s);
 			
