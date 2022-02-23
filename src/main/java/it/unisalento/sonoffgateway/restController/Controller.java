@@ -45,8 +45,8 @@ public class Controller {
 	private final String broker = "tcp://localhost:1883";		
 	private final String authAddress = "http://"+ip+":8180/auth/realms/MyRealm/protocol/openid-connect/userinfo";
 	private final String refreshAddress="http://"+ip+":8180/auth/realms/MyRealm/protocol/openid-connect/token";
-	//private String status1 = new String();
-	private final AtomicReference<String> status1 = new AtomicReference<String>();
+	private String status1 = "";
+	//private final AtomicReference<String> status1 = new AtomicReference<String>();
 	private OkHttpClient client = new OkHttpClient();
 	private final String INVALID_TOKEN = "Invalid token";
 
@@ -117,8 +117,8 @@ public class Controller {
 			client.subscribe(statTopic, new IMqttMessageListener() {
 				@Override
 				public void messageArrived(String topic, MqttMessage message) throws Exception {
-					//status1 = new String(message.getPayload());
-					status1.set(new String(message.getPayload(), StandardCharsets.UTF_8).split(",")[8].split(":")[1]);
+					status1 = new String(message.getPayload());
+					//status1.set(new String(message.getPayload(), StandardCharsets.UTF_8).split(",")[8].split(":")[1]);
 					System.out.println("Getted status: " + status1);
 					client.disconnect();
 				}
@@ -131,8 +131,10 @@ public class Controller {
 			while(client.isConnected());
 			System.out.println("Client " + client.getClientId() + " disconnected succesfully");
 			client.close();
-			int lenght = status1.get().length();
-			String s = status1.get().substring(1, lenght-1);
+			int lenght = status1.length();
+			String s = status1.substring(1, lenght-1);
+			//int lenght = status1.get().length();
+			//String s = status1.get().substring(1, lenght-1);
 
 			Builder builder = U.objectBuilder()
 					.add("status", s);
@@ -258,4 +260,5 @@ public class Controller {
 		}
 	}
 	 
+	
 }
