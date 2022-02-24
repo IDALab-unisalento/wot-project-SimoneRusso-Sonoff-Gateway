@@ -45,7 +45,7 @@ public class Controller {
 	private final String broker = "tcp://localhost:1883";		
 	private final String authAddress = "http://"+ip+":8180/auth/realms/MyRealm/protocol/openid-connect/userinfo";
 	private final String refreshAddress="http://"+ip+":8180/auth/realms/MyRealm/protocol/openid-connect/token";
-	private String status1 = "";
+	private String status = "";
 	//private final AtomicReference<String> status1 = new AtomicReference<String>();
 	private OkHttpClient client = new OkHttpClient();
 	private final String INVALID_TOKEN = "Invalid token";
@@ -107,7 +107,7 @@ public class Controller {
 		}
 	}
 	
-	@RequestMapping(value="getStatus1/{clientId}", method = RequestMethod.POST)
+	@RequestMapping(value="getStatus/{clientId}", method = RequestMethod.POST)
 	public ResponseEntity<String> getStatus1(@PathVariable("clientId") String clientId, @RequestBody User user) throws ParseException, InvalidTokenEx, IOException{
 		try {
 			user = checkToken(user);
@@ -117,9 +117,8 @@ public class Controller {
 			client.subscribe(statTopic, new IMqttMessageListener() {
 				@Override
 				public void messageArrived(String topic, MqttMessage message) throws Exception {
-					status1 = new String(message.getPayload());
-					//status1.set(new String(message.getPayload(), StandardCharsets.UTF_8).split(",")[8].split(":")[1]);
-					System.out.println("Getted status: " + status1);
+					status = new String(message.getPayload());
+					System.out.println("Getted status: " + status);
 					client.disconnect();
 				}
 			});
@@ -131,13 +130,15 @@ public class Controller {
 			while(client.isConnected());
 			System.out.println("Client " + client.getClientId() + " disconnected succesfully");
 			client.close();
-			int lenght = status1.length();
-			String s = status1.substring(1, lenght-1);
-			//int lenght = status1.get().length();
-			//String s = status1.get().substring(1, lenght-1);
-
+			System.out.println("status: "+status.split(",")[8]);
+			
+			String status1 = status.split(",")[8].split(":")[1].replaceAll("\"", "");
+			String pir = status.split(",")[9].split(":")[1].replaceAll("\"", "");
+			String touch = status.split(",")[10].split(":")[1].replaceAll("\"", "");
 			Builder builder = U.objectBuilder()
-					.add("status", s);
+					.add("status", status1)
+					.add("pirSensor", pir)
+					.add("touchSensor", touch);
 			
 			if(user!=null) {
 				builder
@@ -148,7 +149,7 @@ public class Controller {
 					.add("refreshToken", user.getRefreshToken()));
 			}
 			String retValue = builder.toJson();
-			return new ResponseEntity<>(retValue, HttpStatus.OK); //OTTENGO LO STATO DI POWER1
+			return new ResponseEntity<>(retValue, HttpStatus.OK); //OTTENGO LO STATO DI POWER1, POWER2, POWER3*/
 		}
 		catch (MqttException e) {
 			System.out.println("Something went wrong while getting status!\n" + e.getMessage());
@@ -167,6 +168,62 @@ public class Controller {
 		
 		
 	}
+	
+	
+	@RequestMapping(value="getTouchSensorState/{clientId}", method = RequestMethod.POST)
+	public ResponseEntity<String> getTouchSensorState(@PathVariable("clientId") String clientId, @RequestBody User user) throws ParseException, InvalidTokenEx, IOException{
+		try {
+			user = checkToken(user);
+			MqttClient client = connectToBroker(statTopic, clientId);;
+			System.out.println("Trying to subscribe to "+statTopic);
+			client.subscribe(statTopic, new IMqttMessageListener() {
+				@Override
+				public void messageArrived(String topic, MqttMessage message) throws Exception {
+					status = new String(message.getPayload());
+					System.out.println("Getted status: " + status);
+					client.disconnect();
+				}
+			});
+			MqttMessage message = new MqttMessage();
+			//message.setPayload("".getBytes());
+			message.setPayload("0".getBytes());
+			System.out.println("Trying to get status...");
+			client.publish(reqTopic, message);	//BLOCKING
+			while(client.isConnected());
+			System.out.println("Client " + client.getClientId() + " disconnected succesfully");
+			client.close();
+			
+			String touch = status.split(",")[10].split(":")[1].replaceAll("\"", "");
+			Builder builder = U.objectBuilder()
+					.add("touchSensor", touch);
+			
+			if(user!=null) {
+				builder
+					.add("user", U.objectBuilder()
+					.add("username", user.getUsername())
+					.add("role", user.getRole())
+					.add("token", user.getToken())
+					.add("refreshToken", user.getRefreshToken()));
+			}
+			String retValue = builder.toJson();
+			return new ResponseEntity<>(retValue, HttpStatus.OK); //OTTENGO LO STATO DI POWER1*/
+		}
+		catch (MqttException e) {
+			System.out.println("Something went wrong while getting status!\n" + e.getMessage());
+			e.printStackTrace();
+			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (ParseException e) {
+			e.printStackTrace();
+			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (InvalidTokenEx e) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		} catch (IOException e) {
+			e.printStackTrace();
+			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+
+		}
+	}
+	
 	
 	private MqttClient connectToBroker(String topic, String clientId) throws MqttException {
 		MqttClient client = new MqttClient(broker, clientId, new MemoryPersistence());
