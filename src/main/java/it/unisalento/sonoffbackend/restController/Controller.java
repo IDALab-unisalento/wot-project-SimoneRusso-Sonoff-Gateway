@@ -1,4 +1,4 @@
-package it.unisalento.sonoffgateway.restController;
+package it.unisalento.sonoffbackend.restController;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -32,7 +32,7 @@ import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
 
 import exception.InvalidTokenEx;
-import it.unisalento.sonoffgateway.model.User;
+import it.unisalento.sonoffbackend.model.User;
 
 
 @RestController

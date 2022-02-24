@@ -1,4 +1,4 @@
-package it.unisalento.sonoffgateway.configurations;
+package it.unisalento.sonoffbackend.configurations;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;

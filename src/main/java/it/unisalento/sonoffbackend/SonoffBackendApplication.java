@@ -1,4 +1,4 @@
-package it.unisalento.sonoffgateway;
+package it.unisalento.sonoffbackend;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -14,10 +14,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class SonoffGatewayApplication{
+public class SonoffBackendApplication{
 
 	public static void main(String[] args) throws Exception {
-		SpringApplication app = new SpringApplication(SonoffGatewayApplication.class);
+		SpringApplication app = new SpringApplication(SonoffBackendApplication.class);
         app.setDefaultProperties(Collections
           .singletonMap("server.port", "8081"));
         app.run(args);	             
