@@ -275,4 +275,41 @@ public class Controller {
 		}
 
 	}
+	
+	@SuppressWarnings("unchecked")
+	@PostMapping("getEventLog")
+	public ResponseEntity<String> getEventLog(@RequestBody User user){
+		com.squareup.okhttp.MediaType JSON = com.squareup.okhttp.MediaType.parse("application/json; charset=utf-8");
+		JSONObject jsonObj = new JSONObject();
+		
+		jsonObj.put("username", user.getUsername());
+		jsonObj.put("token", user.getToken());
+		jsonObj.put("refreshToken", user.getRefreshToken());
+		jsonObj.put("role", user.getRole());
+
+		com.squareup.okhttp.RequestBody body = com.squareup.okhttp.RequestBody.create(JSON, jsonObj.toString());
+		
+		Request request = new Request.Builder().url(backendAddress+"getEventLog/")
+				.post(body)
+				.build();
+		
+		Response response;
+		try {
+			response = client.newCall(request).execute();
+			if(response.isSuccessful()) {
+				JSONParser parser = new JSONParser();
+				JSONObject jsonResp = (JSONObject) parser.parse(response.body().string());
+				return new ResponseEntity<>(jsonResp.toString(), HttpStatus.valueOf(response.code()));
+			}
+			else {
+				return new ResponseEntity<>(HttpStatus.valueOf(response.code()));
+			}
+		}catch (ParseException e) {
+			e.printStackTrace();
+			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+		} catch (IOException e) {
+			e.printStackTrace();
+			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
 }
