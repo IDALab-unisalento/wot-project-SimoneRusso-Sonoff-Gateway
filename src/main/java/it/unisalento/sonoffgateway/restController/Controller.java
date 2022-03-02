@@ -24,7 +24,10 @@ import it.unisalento.sonoffgateway.model.User;
 
 @RestController
 public class Controller {
-	private final String backendAddress = "http://localhost:8080/";
+	//private final String backendAddress = "http://10.3.141.1:8080/";
+	private final String backendAddress = "http://192.168.1.177:8080/";
+
+
 	private OkHttpClient client = new OkHttpClient();
 	
 		

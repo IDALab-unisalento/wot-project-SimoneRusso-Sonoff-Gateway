@@ -21,11 +21,13 @@ import com.squareup.okhttp.Response;
 @SpringBootApplication
 public class SonoffGatewayApplication{
 
-	private final static String ip = "10.3.141.1";
+	//private final static String ip = "10.3.141.1";
+	private final static String ip = "192.168.1.177";
+
 	public static void main(String[] args) throws Exception {
 		SpringApplication app = new SpringApplication(SonoffGatewayApplication.class);
-        app.setDefaultProperties(Collections
-          .singletonMap("server.port", "8081"));
+       /* app.setDefaultProperties(Collections
+          .singletonMap("server.port", "8081"));*/
         app.run(args);
 		connectAndSubscribeMqtt();
 
@@ -37,7 +39,7 @@ public class SonoffGatewayApplication{
 		String touchTopic = "stat/tasmota_8231A8/POWER3";
 		String clientId = "backend";
 		OkHttpClient httpClient = new OkHttpClient();	
-		final String backendAddress = "http://localhost:8080/";
+		final String backendAddress = "http://"+ip+":8080/";
 
 
 		
