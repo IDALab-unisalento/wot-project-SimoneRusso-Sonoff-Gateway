@@ -1,4 +1,4 @@
-package exception;
+package it.unisalento.sonoffgateway.exception;
 
 public class InvalidTokenEx extends Exception{
 	String message;

@@ -17,7 +17,7 @@ import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
 
-import exception.InvalidTokenEx;
+import it.unisalento.sonoffgateway.exception.InvalidTokenEx;
 import it.unisalento.sonoffgateway.model.Credential;
 import it.unisalento.sonoffgateway.model.User;
 

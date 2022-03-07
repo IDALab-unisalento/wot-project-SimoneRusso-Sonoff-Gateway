@@ -1,6 +1,5 @@
 package it.unisalento.sonoffgateway;
 
-import java.util.Collections;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.IMqttMessageListener;
